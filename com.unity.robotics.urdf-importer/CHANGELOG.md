@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 ### Removed
 
 ### Fixed
-
+- Added check for NaN values during inertia matrix's conversion to inertia tensor rotation.
 
 ## [0.5.2-preview] - 2022-02-01
 
