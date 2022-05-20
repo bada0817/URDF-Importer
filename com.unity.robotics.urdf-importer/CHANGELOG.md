@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 ### Added
 
 ### Changed
+- Changed "Use URDF Values" to "Override URDF Values" in URDF Inertial scripts and updated behavior to match expectation
 
 ### Deprecated
 
