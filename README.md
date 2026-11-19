@@ -1,4 +1,19 @@
-# URDF Importer 
+# URDF Importer (bada0817 fork)
+
+> **This is a maintained fork of [Unity-Technologies/URDF-Importer](https://github.com/Unity-Technologies/URDF-Importer) v0.5.2, not an official Unity release.**
+> The upstream repository has had no release since v0.5.2 (2022-02). This fork collects fixes needed to use it with current Unity versions on Windows.
+> Licensed under Apache 2.0 like the original; modified source files carry a "Modified (bada0817 fork)" comment.
+>
+> Install (Package Manager > + > Add package from git URL):
+> `https://github.com/bada0817/URDF-Importer.git?path=/com.unity.robotics.urdf-importer#v0.5.3-acmm.1`
+>
+> Changes from 0.5.2 (details in [CHANGELOG](com.unity.robotics.urdf-importer/CHANGELOG.md)):
+> - Windows: `AssetExists` path separator fix, so a second import of URDFs sharing meshes no longer regenerates assets or fails in VHACD
+> - Unity 6: obsolete render pipeline API replaced
+> - Inertia fixes cherry-picked from the official `dev` branch (AIRO-1703, AIRO-1946)
+
+---
+
 
 [![Version](https://img.shields.io/github/v/tag/Unity-Technologies/URDF-Importer)](https://github.com/Unity-Technologies/URDF-Importer/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE.md)

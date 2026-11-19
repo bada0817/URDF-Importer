@@ -4,23 +4,24 @@ All notable changes to this repository will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.5.3-acmm.1] - 2026-11-19
+
+Maintained fork by bada0817 (https://github.com/bada0817/URDF-Importer), based on 0.5.2. Not an official Unity release.
 
 ### Upgrade Notes
+- Install from `https://github.com/bada0817/URDF-Importer.git?path=/com.unity.robotics.urdf-importer#v0.5.3-acmm.1`. The package name is unchanged, so remove any copy of the official package from `Packages/` first.
+- Existing STL prefabs and VHACD collision meshes are now reused on re-import (as originally intended). After changing a mesh file, enable `Overwrite Existing Prefabs` once, preferably in a scene that does not contain robots using the same meshes.
 
 ### Known Issues
-
-### Added
+- Materials are still reused by name: changing a `<material>` color in the URDF does not update an existing material asset. Delete it from `Materials/` before re-importing.
 
 ### Changed
-- Changed "Use URDF Values" to "Override URDF Values" in URDF Inertial scripts and updated behavior to match expectation
-
-### Deprecated
-
-### Removed
+- Changed "Use URDF Values" to "Override URDF Values" in URDF Inertial scripts and updated behavior to match expectation (AIRO-1782/AIRO-1946, cherry-picked from the official `dev` branch)
+- Unity 6: use `GraphicsSettings.defaultRenderPipeline` instead of the obsolete `renderPipelineAsset` (older editors keep the old property)
 
 ### Fixed
-- Added check for NaN values during inertia matrix's conversion to inertia tensor rotation.
+- `RuntimeUrdf.AssetExists` always returned false on Windows because it compared `\`-separated importer paths with `/`-separated AssetDatabase paths. STL prefabs and VHACD meshes were regenerated on every import, ignoring `Overwrite Existing Prefabs`, and importing a second URDF that shares meshes could fail with `NullReferenceException` in `VHACD.GenerateConvexMeshes`.
+- Added check for NaN values during inertia matrix's conversion to inertia tensor rotation (AIRO-1703, cherry-picked from the official `dev` branch).
 
 ## [0.5.2-preview] - 2022-02-01
 
