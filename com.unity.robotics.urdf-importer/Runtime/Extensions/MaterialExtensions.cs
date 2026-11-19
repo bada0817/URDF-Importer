@@ -49,17 +49,29 @@ namespace Unity.Robotics
             return null;
         }
 
+        // Modified (bada0817 fork): GraphicsSettings.renderPipelineAsset is obsolete in Unity 6 (the API Updater
+        // rewrites it to defaultRenderPipeline). Pick the property per editor version so 2020.2+ keeps compiling.
+        static RenderPipelineAsset DefaultPipelineAsset
+        {
+#if UNITY_6000_0_OR_NEWER
+            get { return GraphicsSettings.defaultRenderPipeline; }
+#else
+            get { return GraphicsSettings.renderPipelineAsset; }
+#endif
+        }
+
         /// Checks if current render pipeline is HDRP 
         /// Used for creating the proper default material.
         public static RenderPipelineType GetRenderPipelineType()
         {
-            if (GraphicsSettings.renderPipelineAsset != null) 
+            var pipeline = DefaultPipelineAsset;
+            if (pipeline != null) 
             {
-                if (GraphicsSettings.renderPipelineAsset.GetType().ToString().Contains("HighDefinition"))
+                if (pipeline.GetType().ToString().Contains("HighDefinition"))
                 {
                     return RenderPipelineType.HDRP;
                 }
-                else if (GraphicsSettings.renderPipelineAsset.GetType().ToString().Contains("Universal"))
+                else if (pipeline.GetType().ToString().Contains("Universal"))
                 {
                     return RenderPipelineType.URP;
                 }
