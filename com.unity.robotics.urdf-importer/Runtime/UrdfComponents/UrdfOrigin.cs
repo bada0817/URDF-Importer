@@ -28,16 +28,19 @@ namespace Unity.Robotics.UrdfImporter
                 transform.Rotate(GetRotationFromUrdf(origin));
             }
         }
+        // Modified (bada0817 fork): Unity serializes a missing (null) Origin or array as an empty one, so after a
+        // domain reload / entering Play mode an <inertial> without <origin> arrives here with zero-length arrays
+        // (IndexOutOfRangeException from UrdfInertial.Start). Treat arrays shorter than 3 as "not specified".
         public static Vector3 GetPositionFromUrdf(Origin origin)
         {
-            if (origin.Xyz != null)
+            if (origin != null && origin.Xyz != null && origin.Xyz.Length >= 3)
                 return origin.Xyz.ToVector3().Ros2Unity();
             
             return Vector3.zero;
         }
         public static Vector3 GetRotationFromUrdf(Origin origin)
         {
-            if (origin.Rpy != null)
+            if (origin != null && origin.Rpy != null && origin.Rpy.Length >= 3)
                 return new Vector3(
                     (float)+origin.Rpy[1] * Mathf.Rad2Deg,
                     (float)-origin.Rpy[2] * Mathf.Rad2Deg,

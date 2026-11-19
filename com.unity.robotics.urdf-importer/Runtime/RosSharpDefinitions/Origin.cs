@@ -38,10 +38,11 @@ namespace Unity.Robotics.UrdfImporter
 
         public void WriteToUrdf(XmlWriter writer)
         {
+            // Modified (bada0817 fork): skip empty arrays (a missing origin deserialized by Unity) instead of writing xyz=""
             writer.WriteStartElement("origin");
-            if(Rpy != null)
+            if(Rpy != null && Rpy.Length > 0)
                 writer.WriteAttributeString("rpy", Rpy.DoubleArrayToString());
-            if(Xyz != null)
+            if(Xyz != null && Xyz.Length > 0)
                 writer.WriteAttributeString("xyz", Xyz.DoubleArrayToString());
             writer.WriteEndElement();
         }
