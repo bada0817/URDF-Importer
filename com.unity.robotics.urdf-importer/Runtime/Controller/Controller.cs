@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Unity.Robotics;
 using UnityEngine;
 
@@ -7,11 +8,19 @@ namespace Unity.Robotics.UrdfImporter.Control
     public enum RotationDirection { None = 0, Positive = 1, Negative = -1 };
     public enum ControlType { PositionControl };
 
+    // Modified (bada0817 fork):
+    // - only movable joints (non-fixed) are selectable; the root and fixed links were selectable before,
+    //   so arrow keys often landed on parts that cannot move
+    // - the first selected joint is highlighted at start, and colors of every joint are stored once at start
+    // - renderers are taken from the link's "Visuals" child (GetChild(0) only as a fallback), all material slots
+    //   are highlighted and restored, and highlight colors also work for glTF (glTFast) materials (MaterialExtensions)
+    // - works with the Input System package as well as the legacy Input Manager
+    // - no crash when the robot has fewer than two movable joints
     public class Controller : MonoBehaviour
     {
         private ArticulationBody[] articulationChain;
-        // Stores original colors of the part being highlighted
-        private Color[] prevColor;
+        // Stores original colors of each joint's visuals (per renderer and material slot), captured at start
+        private Color[][] prevColors;
         private int previousIndex;
 
         [InspectorReadOnly(hideInEditMode: true)]
@@ -32,11 +41,11 @@ namespace Unity.Robotics.UrdfImporter.Control
 
         void Start()
         {
-            previousIndex = selectedIndex = 1;
             this.gameObject.AddComponent<FKRobot>();
-            articulationChain = this.GetComponentsInChildren<ArticulationBody>();
+            ArticulationBody[] allBodies = this.GetComponentsInChildren<ArticulationBody>();
+            var movable = new List<ArticulationBody>();
             int defDyanmicVal = 10;
-            foreach (ArticulationBody joint in articulationChain)
+            foreach (ArticulationBody joint in allBodies)
             {
                 joint.gameObject.AddComponent<JointControl>();
                 joint.jointFriction = defDyanmicVal;
@@ -44,9 +53,27 @@ namespace Unity.Robotics.UrdfImporter.Control
                 ArticulationDrive currentDrive = joint.xDrive;
                 currentDrive.forceLimit = forceLimit;
                 joint.xDrive = currentDrive;
+                if (joint.jointType != ArticulationJointType.FixedJoint)
+                {
+                    movable.Add(joint);
+                }
+            }
+            articulationChain = movable.ToArray();
+            previousIndex = selectedIndex = 0;
+            if (articulationChain.Length == 0)
+            {
+                Debug.LogWarning("[URDF Importer Controller] No movable joints found.");
+                enabled = false;
+                return;
+            }
+
+            prevColors = new Color[articulationChain.Length][];
+            for (int i = 0; i < articulationChain.Length; i++)
+            {
+                StoreJointColors(i);
             }
             DisplaySelectedJoint(selectedIndex);
-            StoreJointColors(selectedIndex);
+            ApplyHighlight(selectedIndex);
         }
 
         void SetSelectedJointIndex(int index)
@@ -59,8 +86,8 @@ namespace Unity.Robotics.UrdfImporter.Control
 
         void Update()
         {
-            bool SelectionInput1 = Input.GetKeyDown("right");
-            bool SelectionInput2 = Input.GetKeyDown("left");
+            bool SelectionInput1 = KeyDownRight();
+            bool SelectionInput2 = KeyDownLeft();
 
             SetSelectedJointIndex(selectedIndex); // to make sure it is in the valid range
             UpdateDirection(selectedIndex);
@@ -76,6 +103,7 @@ namespace Unity.Robotics.UrdfImporter.Control
                 Highlight(selectedIndex);
             }
 
+            // UpdateDirection stops the previously selected joint and then sets previousIndex to the new joint
             UpdateDirection(selectedIndex);
         }
 
@@ -93,17 +121,8 @@ namespace Unity.Robotics.UrdfImporter.Control
             // reset colors for the previously selected joint
             ResetJointColors(previousIndex);
 
-            // store colors for the current selected joint
-            StoreJointColors(selectedIndex);
-
             DisplaySelectedJoint(selectedIndex);
-            Renderer[] rendererList = articulationChain[selectedIndex].transform.GetChild(0).GetComponentsInChildren<Renderer>();
-
-            // set the color of the selected join meshes to the highlight color
-            foreach (var mesh in rendererList)
-            {
-                MaterialExtensions.SetMaterialColor(mesh.material, highLightColor);
-            }
+            ApplyHighlight(selectedIndex);
         }
 
         void DisplaySelectedJoint(int selectedIndex)
@@ -126,7 +145,7 @@ namespace Unity.Robotics.UrdfImporter.Control
                 return;
             }
 
-            float moveDirection = Input.GetAxis("Vertical");
+            float moveDirection = VerticalInput();
             JointControl current = articulationChain[jointIndex].GetComponent<JointControl>();
             if (previousIndex != jointIndex)
             {
@@ -155,29 +174,65 @@ namespace Unity.Robotics.UrdfImporter.Control
         }
 
         /// <summary>
-        /// Stores original color of the part being highlighted
+        /// Renderers of a link's visual meshes ("Visuals" child; first child as a fallback)
+        /// </summary>
+        private Renderer[] GetTargetRenderers(int index)
+        {
+            Transform link = articulationChain[index].transform;
+            Transform visuals = link.Find("Visuals");
+            if (visuals != null)
+            {
+                return visuals.GetComponentsInChildren<Renderer>(true);
+            }
+            return link.childCount > 0 ? link.GetChild(0).GetComponentsInChildren<Renderer>(true) : new Renderer[0];
+        }
+
+        /// <summary>
+        /// Stores original colors of a joint's visuals (every renderer and material slot)
         /// </summary>
         /// <param name="index">Index of the part in the Articulation chain</param>
         private void StoreJointColors(int index)
         {
-            Renderer[] materialLists = articulationChain[index].transform.GetChild(0).GetComponentsInChildren<Renderer>();
-            prevColor = new Color[materialLists.Length];
-            for (int counter = 0; counter < materialLists.Length; counter++)
+            var colors = new List<Color>();
+            foreach (Renderer renderer in GetTargetRenderers(index))
             {
-                prevColor[counter] = MaterialExtensions.GetMaterialColor(materialLists[counter]);
+                foreach (Material material in renderer.sharedMaterials)
+                {
+                    colors.Add(material != null ? MaterialExtensions.GetMaterialColor(material) : Color.white);
+                }
+            }
+            prevColors[index] = colors.ToArray();
+        }
+
+        private void ApplyHighlight(int index)
+        {
+            foreach (Renderer renderer in GetTargetRenderers(index))
+            {
+                foreach (Material material in renderer.materials)
+                {
+                    MaterialExtensions.SetMaterialColor(material, highLightColor);
+                }
             }
         }
 
         /// <summary>
-        /// Resets original color of the part being highlighted
+        /// Resets original colors of the part being highlighted
         /// </summary>
         /// <param name="index">Index of the part in the Articulation chain</param>
         private void ResetJointColors(int index)
         {
-            Renderer[] previousRendererList = articulationChain[index].transform.GetChild(0).GetComponentsInChildren<Renderer>();
-            for (int counter = 0; counter < previousRendererList.Length; counter++)
+            Color[] colors = prevColors[index];
+            int k = 0;
+            foreach (Renderer renderer in GetTargetRenderers(index))
             {
-                MaterialExtensions.SetMaterialColor(previousRendererList[counter].material, prevColor[counter]);
+                foreach (Material material in renderer.materials)
+                {
+                    if (colors == null || k >= colors.Length)
+                    {
+                        return;
+                    }
+                    MaterialExtensions.SetMaterialColor(material, colors[k++]);
+                }
             }
         }
 
@@ -191,6 +246,49 @@ namespace Unity.Robotics.UrdfImporter.Control
                 drive.damping = damping;
                 joint.joint.xDrive = drive;
             }
+        }
+
+        // ---- input (Input System package and/or legacy Input Manager, whichever is enabled)
+        private static bool KeyDownRight()
+        {
+#if URDF_IMPORTER_INPUT_SYSTEM && ENABLE_INPUT_SYSTEM
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.rightArrowKey.wasPressedThisFrame) return true;
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            if (Input.GetKeyDown(KeyCode.RightArrow)) return true;
+#endif
+            return false;
+        }
+
+        private static bool KeyDownLeft()
+        {
+#if URDF_IMPORTER_INPUT_SYSTEM && ENABLE_INPUT_SYSTEM
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.leftArrowKey.wasPressedThisFrame) return true;
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            if (Input.GetKeyDown(KeyCode.LeftArrow)) return true;
+#endif
+            return false;
+        }
+
+        // Same keys as the legacy "Vertical" axis: up/down arrows and W/S
+        private static float VerticalInput()
+        {
+#if URDF_IMPORTER_INPUT_SYSTEM && ENABLE_INPUT_SYSTEM
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null)
+            {
+                float v = (kb.upArrowKey.isPressed || kb.wKey.isPressed ? 1f : 0f) - (kb.downArrowKey.isPressed || kb.sKey.isPressed ? 1f : 0f);
+                if (v != 0f) return v;
+            }
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetAxis("Vertical");
+#else
+            return 0f;
+#endif
         }
 
         public void OnGUI()

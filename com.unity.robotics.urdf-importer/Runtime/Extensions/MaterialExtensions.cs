@@ -79,9 +79,40 @@ namespace Unity.Robotics
             return RenderPipelineType.Standard;
         }
 
+        // Modified (bada0817 fork): use the color property the material actually has, so highlight colors also work
+        // for materials whose shader does not follow the pipeline default (e.g. glTFast materials use "baseColorFactor").
+        static readonly string[] k_ColorProperties = { "_BaseColor", "_Color", "baseColorFactor" };
+
+        static string ColorPropertyOf(Material material)
+        {
+            string preferred = GetRenderPipelineType() != RenderPipelineType.Standard ? "_BaseColor" : "_Color";
+            if (material == null || material.HasProperty(preferred))
+            {
+                return preferred;
+            }
+            foreach (var name in k_ColorProperties)
+            {
+                if (material.HasProperty(name))
+                {
+                    return name;
+                }
+            }
+            return null;
+        }
+
         public static void SetMaterialColor(Material material, Color color)
         {
-            material.SetColor(GetRenderPipelineType() != RenderPipelineType.Standard ? "_BaseColor" : "_Color", color);
+            string property = ColorPropertyOf(material);
+            if (property != null)
+            {
+                material.SetColor(property, color);
+            }
+        }
+
+        public static Color GetMaterialColor(Material material)
+        {
+            string property = ColorPropertyOf(material);
+            return property != null ? material.GetColor(property) : Color.white;
         }
 
         public static void SetMaterialEmissionColor(Material material, Color color)
@@ -94,14 +125,8 @@ namespace Unity.Robotics
 
         public static Color GetMaterialColor(Renderer renderer)
         {
-            if (GetRenderPipelineType() != RenderPipelineType.Standard)
-            {
-                return renderer.material.GetColor("_BaseColor");
-            }
-            else
-            {
-                return renderer.sharedMaterial.GetColor("_Color");
-            }
+            // Modified (bada0817 fork): read the shared material (no instance created) with the property fallback above
+            return GetMaterialColor(renderer.sharedMaterial);
         }
     }
 }
