@@ -238,12 +238,17 @@ public static class RuntimeUrdf
     public static bool AssetExists(string assetPath, bool ignoreCase = false)
     {
 #if UNITY_EDITOR
-        string[] foldersToSearch = {Path.GetDirectoryName(assetPath)};
-        var assetName = Path.GetFileNameWithoutExtension(assetPath);
+        // Modified (bada0817 fork): on Windows assetPath uses '\' (SetSeparatorChar) while AssetDatabase paths always use '/'.
+        // Comparing them as-is always returned false, so STL prefabs and VHACD meshes were regenerated on every import
+        // (ignoring "Overwrite Existing Prefabs") and a second import sharing meshes could fail in VHACD with a null mesh.
+        // Normalize separators before searching and comparing.
+        string normalized = assetPath.Replace('\\', '/');
+        string[] foldersToSearch = {Path.GetDirectoryName(normalized).Replace('\\', '/')};
+        var assetName = Path.GetFileNameWithoutExtension(normalized);
         foreach (var guid2 in AssetDatabase_FindAssets(assetName, foldersToSearch))
         {
             var possiblePath = RuntimeUrdf.AssetDatabase_GUIDToAssetPath(guid2);
-            if (string.Equals(possiblePath, assetPath, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+            if (string.Equals(possiblePath, normalized, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
             {
                 return true;
             }
