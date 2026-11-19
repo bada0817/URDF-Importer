@@ -11,12 +11,14 @@
 > - Windows: `AssetExists` path separator fix, so a second import of URDFs sharing meshes no longer regenerates assets or fails in VHACD
 > - Unity 6: obsolete render pipeline API replaced
 > - Default `Controller`: selection skips fixed links, highlight fixes (incl. glTF materials), Input System support
-> - Inertia fixes cherry-picked from the official `dev` branch (AIRO-1703, AIRO-1946)
+> - Inertia fixes cherry-picked from the official `dev` branch (AIRO-1703, AIRO-1946), plus a fix for inertials without `<origin>` after Unity deserialization
+>
+> Branches: `main` = latest fork release, `acmm-fixes` = development. The original README follows below.
 
 ---
 
 
-[![Version](https://img.shields.io/github/v/tag/Unity-Technologies/URDF-Importer)](https://github.com/Unity-Technologies/URDF-Importer/releases)
+[![Version](https://img.shields.io/github/v/tag/bada0817/URDF-Importer)](https://github.com/bada0817/URDF-Importer/tags)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE.md)
 ![Unity](https://img.shields.io/badge/unity-2020.2+-brightgreen)
 
