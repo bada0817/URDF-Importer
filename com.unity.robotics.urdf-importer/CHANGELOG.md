@@ -18,8 +18,10 @@ Maintained fork by bada0817 (https://github.com/bada0817/URDF-Importer), based o
 ### Changed
 - Changed "Use URDF Values" to "Override URDF Values" in URDF Inertial scripts and updated behavior to match expectation (AIRO-1782/AIRO-1946, cherry-picked from the official `dev` branch)
 - Unity 6: use `GraphicsSettings.defaultRenderPipeline` instead of the obsolete `renderPipelineAsset` (older editors keep the old property)
+- Default `Controller`: only movable (non-fixed) joints are selectable, the first joint is highlighted at start, and the Input System package is supported alongside the legacy Input Manager (optional asmdef reference, define `URDF_IMPORTER_INPUT_SYSTEM`)
 
 ### Fixed
+- Default `Controller` highlight: colors are stored per joint at start, renderers come from the link's `Visuals` child, all material slots are highlighted and restored, and glTF (glTFast `baseColorFactor`) materials can be highlighted (`MaterialExtensions` color property fallback). No crash with fewer than two movable joints.
 - `RuntimeUrdf.AssetExists` always returned false on Windows because it compared `\`-separated importer paths with `/`-separated AssetDatabase paths. STL prefabs and VHACD meshes were regenerated on every import, ignoring `Overwrite Existing Prefabs`, and importing a second URDF that shares meshes could fail with `NullReferenceException` in `VHACD.GenerateConvexMeshes`.
 - Added check for NaN values during inertia matrix's conversion to inertia tensor rotation (AIRO-1703, cherry-picked from the official `dev` branch).
 

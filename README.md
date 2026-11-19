@@ -10,6 +10,7 @@
 > Changes from 0.5.2 (details in [CHANGELOG](com.unity.robotics.urdf-importer/CHANGELOG.md)):
 > - Windows: `AssetExists` path separator fix, so a second import of URDFs sharing meshes no longer regenerates assets or fails in VHACD
 > - Unity 6: obsolete render pipeline API replaced
+> - Default `Controller`: selection skips fixed links, highlight fixes (incl. glTF materials), Input System support
 > - Inertia fixes cherry-picked from the official `dev` branch (AIRO-1703, AIRO-1946)
 
 ---
